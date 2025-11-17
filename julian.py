@@ -52,7 +52,7 @@ def overall_by_province():
     ORDER BY totaal DESC;
     """
     rows = run_query(sql)
-    return jsonify(rows)
+    return rows
 
 def education_by_province(provincie):
     sql = """
@@ -62,7 +62,7 @@ def education_by_province(provincie):
     ORDER BY aantal DESC;
     """
     rows = run_query(sql, (provincie,))
-    return jsonify(rows)
+    return rows
 
 def top_provinces_for_education(onderwijssoort):
     sql = """
@@ -73,26 +73,100 @@ def top_provinces_for_education(onderwijssoort):
     LIMIT 5;
     """
     rows = run_query(sql, (onderwijssoort,))
-    return jsonify(rows)
+    return rows
 
 def myth_higher_education():
     sql = """
-        SELECT 
+        SELECT
             provincie,
+            
+            -- Numerator: Havo + Vwo + all Hbo + all Wo
+            SUM(
+                CASE
+                    WHEN onderwijssoort IN (
+                        'Havo',
+                        'Vwo',
+                        'Hbo-associate degree',
+                        'Hbo-bachelor',
+                        'Hbo-master/vervolgopleiding',
+                        'Wo-bachelor',
+                        'Wo-master'
+                    )
+                    THEN aantal
+                    ELSE 0
+                END
+            ) AS higher_edu,
+            
+            -- Denominator: vmbo + mbo + havo + vwo + hbo + wo
+            SUM(
+                CASE
+                    WHEN onderwijssoort IN (
+                        'Havo',
+                        'Vwo',
+                        'Vmbo g/t',
+                        'Vmbo-b',
+                        'Vmbo-k',
+                        'Hbo-associate degree',
+                        'Hbo-bachelor',
+                        'Hbo-master/vervolgopleiding',
+                        'Wo-bachelor',
+                        'Wo-master',
+                        'MBO Entreeopleiding (incl. extranei)',
+                        'MBO Niveau 2 (incl. extranei)',
+                        'MBO Niveau 3 (incl. extranei)',
+                        'MBO Niveau 4 (incl. extranei)'
+                    )
+                    THEN aantal
+                    ELSE 0
+                END
+            ) AS total_relevant,
+
+            -- Percentage
             ROUND(
-                SUM(CASE 
-                    WHEN onderwijssoort LIKE 'HBO%' 
-                      OR onderwijssoort LIKE 'WO%' 
-                    THEN aantal 
-                    ELSE 0 
-                END) 
-                /
-                SUM(aantal) * 100, 
+                100 * 
+                SUM(
+                    CASE
+                        WHEN onderwijssoort IN (
+                            'Havo',
+                            'Vwo',
+                            'Hbo-associate degree',
+                            'Hbo-bachelor',
+                            'Hbo-master/vervolgopleiding',
+                            'Wo-bachelor',
+                            'Wo-master'
+                        )
+                        THEN aantal
+                        ELSE 0
+                    END
+                ) /
+                SUM(
+                    CASE
+                        WHEN onderwijssoort IN (
+                            'Havo',
+                            'Vwo',
+                            'Vmbo g/t',
+                            'Vmbo-b',
+                            'Vmbo-k',
+                            'Hbo-associate degree',
+                            'Hbo-bachelor',
+                            'Hbo-master/vervolgopleiding',
+                            'Wo-bachelor',
+                            'Wo-master',
+                            'MBO Entreeopleiding (incl. extranei)',
+                            'MBO Niveau 2 (incl. extranei)',
+                            'MBO Niveau 3 (incl. extranei)',
+                            'MBO Niveau 4 (incl. extranei)'
+                        )
+                        THEN aantal
+                        ELSE 0
+                    END
+                ),
                 2
-            ) AS percentage_higher_edu
+            ) AS pct_mid_high
+
         FROM gediplomeerden_clean
         GROUP BY provincie
-        ORDER BY percentage_higher_edu DESC;
+        ORDER BY pct_mid_high DESC;
     """
     rows = run_query(sql)
-    return jsonify(rows)
+    return rows
