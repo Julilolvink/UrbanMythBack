@@ -7,8 +7,6 @@ def start():
     myconn, mycursor = get_cursor()
     mycursor.execute("""SELECT Eigenaar_of_huurder, Perioden, `Tevredenheid met de huidige woning (%)`, `Tevredenheid met de huidige woonomgeving (%)`
 FROM urbanmythdb.woontevredenheid""")
-    rows = mycursor.fetchall()
-    keys = [i[0] for i in mycursor.description]
-    data = [dict(zip(keys, row)) for row in rows]
+    data = mycursor.fetchall()
 
     return jsonify(data)
